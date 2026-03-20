@@ -878,8 +878,8 @@ class CustomMediaPlayer(QWidget):
             "Metalocalypse","China IL","The Brak Show","Harvey Birdman, Attorney At Law","Aqua Teen Hunger Force",
         }
         hour_shows = {"Smallville","Charmed","Dawsons Creek","Felicity","7th Heaven",
-"Gilmore Girls","MADtv","Andromeda","Farscape","Firefly","First Wave", "Battlestar Galactica"
-"Stargate Atlantis","Stargate SG-1","The 4400","Dark Angel","X-Files","Kyle XY","House", "Stargate Atlantis"}
+"Gilmore Girls","MADtv","Andromeda","Farscape","Firefly","First Wave", "Battlestar Galactica",
+"Stargate Atlantis","Stargate SG-1","The 4400","Dark Angel","X-Files","Kyle XY","House"}
 
         MOVIE_FILLERS = {
             "Disney Movie": "Brandy and Mr Whiskers",
@@ -889,8 +889,10 @@ class CustomMediaPlayer(QWidget):
             "Nick Movie": "Oh Yeah Cartoons"
         }
         remaining_shows = shows[:]  # pool without repeats
+        no_episode_shows = set()  # shows confirmed to have no episodes at all
 
-        with open(log_file, "a", encoding="utf-8") as log:
+        with open(log_file, "a", encoding="utf-8") as log, \
+             open("missing.log", "a", encoding="utf-8") as missing_log:
             log.write(f"\n=== Block {block_name} ({start_h}:00–{end_h}:00) ===\n")
 
             # --- Normal block handling ---
@@ -902,7 +904,11 @@ class CustomMediaPlayer(QWidget):
                 # while current < end:
             # while (current - start_h * 3600) < allowed_slots * slot_len:
                 if not remaining_shows:
-                    break
+                    # Try to refill with shows that weren't used and aren't confirmed empty
+                    fallback_shows = [s for s in shows if s not in used_shows and s not in no_episode_shows]
+                    if not fallback_shows:
+                        break
+                    remaining_shows = fallback_shows
 
                 slot_start = str(datetime.timedelta(seconds=current))
                 slot_end = str(datetime.timedelta(seconds=current + slot_len))
@@ -973,6 +979,8 @@ class CustomMediaPlayer(QWidget):
                         msg = f"[{block_name}] No episodes for {show}, skipping slot {slot_start}-{slot_end}\n"
                         print(msg.strip());
                         log.write(msg)
+                        missing_log.write(msg)
+                        no_episode_shows.add(show)
                         slots_used += 1
                         continue
 
@@ -997,6 +1005,8 @@ class CustomMediaPlayer(QWidget):
                         msg = f"[{block_name}] No episodes for {show}, skipping slot {slot_start}-{slot_end}\n"
                         print(msg.strip());
                         log.write(msg)
+                        missing_log.write(msg)
+                        no_episode_shows.add(show)
                         slots_used += 1
                         continue
 
@@ -1020,6 +1030,8 @@ class CustomMediaPlayer(QWidget):
                         msg = f"[{block_name}] No episodes for {show}, skipping slot {slot_start}-{slot_end}\n"
                         print(msg.strip());
                         log.write(msg)
+                        missing_log.write(msg)
+                        no_episode_shows.add(show)
                         slots_used += 1
                         continue
 
@@ -1043,6 +1055,8 @@ class CustomMediaPlayer(QWidget):
                         msg = f"[{block_name}] No episodes for {show}, skipping slot {slot_start}-{slot_end}\n"
                         print(msg.strip());
                         log.write(msg)
+                        missing_log.write(msg)
+                        no_episode_shows.add(show)
                         slots_used += 1
                         continue
 
@@ -1066,6 +1080,8 @@ class CustomMediaPlayer(QWidget):
                         msg = f"[{block_name}] No episodes for {show}, skipping slot {slot_start}-{slot_end}\n"
                         print(msg.strip());
                         log.write(msg)
+                        missing_log.write(msg)
+                        no_episode_shows.add(show)
                         slots_used += 1
                         continue
 
@@ -1116,6 +1132,8 @@ class CustomMediaPlayer(QWidget):
                     msg = f"[{block_name}] No episodes for {show}, skipping slot {slot_start}-{slot_end}\n"
                     print(msg.strip());
                     log.write(msg)
+                    missing_log.write(msg)
+                    no_episode_shows.add(show)
                     continue
 
                 used_shows.add(show)
@@ -3106,4 +3124,3 @@ if __name__ == "__main__":
     media_player.show()
     # media_player.secret_mpv()
     sys.exit(app.exec_())
-
