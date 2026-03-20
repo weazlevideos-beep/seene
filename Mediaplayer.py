@@ -411,7 +411,7 @@ class CustomMediaPlayer(QWidget):
             # Finalize the playlist
             self.finalize_playlist()
             print("Custom Schedule Created (Unwatched):")
-            for show, episode, block in self.playlist:
+            for show, episode, block, *_ in self.playlist:
                 print(f"Show: {show}, Episode: {episode}")
 
     def create_custom_schedule_t(self):
@@ -490,7 +490,7 @@ class CustomMediaPlayer(QWidget):
         # Finalize the playlist
         self.finalize_playlist()
         print("Custom Schedule Created (Unwatched):")
-        for show, episode, block in self.playlist:
+        for show, episode, block, *_ in self.playlist:
             print(f"Show: {show}, Episode: {episode}")
 
     def create_custom_schedule_mi(self):
@@ -521,7 +521,7 @@ class CustomMediaPlayer(QWidget):
         # Finalize the playlist
         self.finalize_playlist()
         print("Custom Schedule Created (Unwatched):")
-        for show, episode, block in self.playlist:
+        for show, episode, block, *_ in self.playlist:
             print(f"Show: {show}, Episode: {episode}")
 
     def create_custom_schedule_fox(self):
@@ -547,7 +547,7 @@ class CustomMediaPlayer(QWidget):
         # Finalize the playlist
         self.finalize_playlist()
         print("Custom Schedule Created (Unwatched):")
-        for show, episode, block in self.playlist:
+        for show, episode, block, *_ in self.playlist:
             print(f"Show: {show}, Episode: {episode}")
 
     def create_custom_schedule_as(self):
@@ -586,7 +586,7 @@ class CustomMediaPlayer(QWidget):
         # Finalize the playlist
         self.finalize_playlist()
         print("Custom Schedule Created (Unwatched):")
-        for show, episode, block in self.playlist:
+        for show, episode, block, *_ in self.playlist:
             print(f"Show: {show}, Episode: {episode}")
 
     def create_custom_schedule_anime(self):
@@ -622,7 +622,7 @@ class CustomMediaPlayer(QWidget):
         self.finalize_playlist()
 
         print("Custom Schedule Created (Unwatched):")
-        for show, episode, block in self.playlist:
+        for show, episode, block, *_ in self.playlist:
             print(f"Show: {show}, Episode: {episode}, Block: {block}")
 
     def create_custom_schedule_nn(self):
@@ -645,7 +645,7 @@ class CustomMediaPlayer(QWidget):
         # Finalize the playlist
         self.finalize_playlist()
         print("Custom Schedule Created (Unwatched):")
-        for show, episode, block in self.playlist:
+        for show, episode, block, *_ in self.playlist:
             print(f"Show: {show}, Episode: {episode}")
 
     def create_custom_schedule_sves(self):
@@ -675,7 +675,7 @@ class CustomMediaPlayer(QWidget):
         # Finalize the playlist
         self.finalize_playlist()
         print("Custom Schedule Created (Unwatched):")
-        for show, episode, block in self.playlist:
+        for show, episode, block, *_ in self.playlist:
             print(f"Show: {show}, Episode: {episode}")
 
     def create_custom_schedule_wb(self):
@@ -700,7 +700,7 @@ class CustomMediaPlayer(QWidget):
         # Finalize the playlist
         self.finalize_playlist()
         print("Custom Schedule Created (Unwatched):")
-        for show, episode, block in self.playlist:
+        for show, episode, block, *_ in self.playlist:
             print(f"Show: {show}, Episode: {episode}")
 
     def create_custom_schedule_unwatched(self):
@@ -721,7 +721,7 @@ class CustomMediaPlayer(QWidget):
             # Finalize the playlist
             self.finalize_playlist()
             print("Custom Schedule Created (Unwatched):")
-            for show, episode, block in self.playlist:
+            for show, episode, block, *_ in self.playlist:
                 print(f"Show: {show}, Episode: {episode}")
 
     def save_single_channel_ffmpeg_playlist(self, filename):
@@ -795,7 +795,7 @@ class CustomMediaPlayer(QWidget):
         with open(filename, "w", encoding="utf-8") as f:
             last_show = None
 
-            for show, _, _ in self.playlist:
+            for show, *_ in self.playlist:
                 if show != last_show:
                     f.write(f"{show}\n")
                     last_show = show
@@ -878,7 +878,7 @@ class CustomMediaPlayer(QWidget):
             "Metalocalypse","China IL","The Brak Show","Harvey Birdman, Attorney At Law","Aqua Teen Hunger Force",
         }
         hour_shows = {"Smallville","Charmed","Dawsons Creek","Felicity","7th Heaven",
-"Gilmore Girls","MADtv","Andromeda","Farscape","Firefly","First Wave", "Battlestar Galactica"
+"Gilmore Girls","MADtv","Andromeda","Farscape","Firefly","First Wave", "Battlestar Galactica",
 "Stargate Atlantis","Stargate SG-1","The 4400","Dark Angel","X-Files","Kyle XY","House", "Stargate Atlantis"}
 
         MOVIE_FILLERS = {
@@ -889,8 +889,10 @@ class CustomMediaPlayer(QWidget):
             "Nick Movie": "Oh Yeah Cartoons"
         }
         remaining_shows = shows[:]  # pool without repeats
+        no_episode_shows = set()  # shows confirmed to have no episodes at all
 
-        with open(log_file, "a", encoding="utf-8") as log:
+        with open(log_file, "a", encoding="utf-8") as log, \
+                open("missing.log", "a", encoding="utf-8") as missing_log:
             log.write(f"\n=== Block {block_name} ({start_h}:00–{end_h}:00) ===\n")
 
             # --- Normal block handling ---
@@ -902,7 +904,11 @@ class CustomMediaPlayer(QWidget):
                 # while current < end:
             # while (current - start_h * 3600) < allowed_slots * slot_len:
                 if not remaining_shows:
-                    break
+                    # Try to refill with shows that weren't used and aren't confirmed empty
+                    fallback_shows = [s for s in shows if s not in used_shows and s not in no_episode_shows]
+                    if not fallback_shows:
+                        break
+                    remaining_shows = fallback_shows
 
                 slot_start = str(datetime.timedelta(seconds=current))
                 slot_end = str(datetime.timedelta(seconds=current + slot_len))
@@ -973,6 +979,8 @@ class CustomMediaPlayer(QWidget):
                         msg = f"[{block_name}] No episodes for {show}, skipping slot {slot_start}-{slot_end}\n"
                         print(msg.strip());
                         log.write(msg)
+                        missing_log.write(msg)
+                        no_episode_shows.add(show)
                         slots_used += 1
                         continue
 
@@ -984,8 +992,8 @@ class CustomMediaPlayer(QWidget):
                         msg = f"[{block_name}] SPECIAL (House 1h) Slot {slot_start}-{slot_end}: {show} {ep}\n"
                         print(msg.strip());
                         log.write(msg)
-                        # advance by 2 slots (1 hour)
-                        current += slot_len * 2
+                        slots_used += 2  # 1 hour = 2 slots
+                        current += slot_len * 2  # ← ONLY this line, remove the "+ slot_len" you added
                         slot_start = str(datetime.timedelta(seconds=current))
                         slot_end = str(datetime.timedelta(seconds=current + slot_len))
                     continue
@@ -997,6 +1005,8 @@ class CustomMediaPlayer(QWidget):
                         msg = f"[{block_name}] No episodes for {show}, skipping slot {slot_start}-{slot_end}\n"
                         print(msg.strip());
                         log.write(msg)
+                        missing_log.write(msg)
+                        no_episode_shows.add(show)
                         slots_used += 1
                         continue
 
@@ -1009,6 +1019,7 @@ class CustomMediaPlayer(QWidget):
                         print(msg.strip());
                         log.write(msg)
                         slots_used += 1
+                        current += slot_len  # ← add this
                         slot_start = str(datetime.timedelta(seconds=current))
                         slot_end = str(datetime.timedelta(seconds=current + slot_len))
                     continue
@@ -1020,6 +1031,8 @@ class CustomMediaPlayer(QWidget):
                         msg = f"[{block_name}] No episodes for {show}, skipping slot {slot_start}-{slot_end}\n"
                         print(msg.strip());
                         log.write(msg)
+                        missing_log.write(msg)
+                        no_episode_shows.add(show)
                         slots_used += 1
                         continue
 
@@ -1034,30 +1047,38 @@ class CustomMediaPlayer(QWidget):
                         log.write(msg)
 
                     slots_used += 1
+                    current += slot_len  # ← add this
+                    slot_start = str(datetime.timedelta(seconds=current))
+                    slot_end = str(datetime.timedelta(seconds=current + slot_len))
                     continue
 
                 # --- Special case: Brandy and Mr Whiskers ---
-                if show in ["Brandy and Mr Whiskers",'theweek3nders']:
+                if show in ["Brandy and Mr Whiskers", 'theweek3nders']:
                     eps_sets = self.get_next_unwatched_episode(show, max_count=2)
                     if not eps_sets:
                         msg = f"[{block_name}] No episodes for {show}, skipping slot {slot_start}-{slot_end}\n"
                         print(msg.strip());
                         log.write(msg)
+                        missing_log.write(msg)
+                        no_episode_shows.add(show)
                         slots_used += 1
-                        continue
+                        continue  # ← outer loop continue (no episodes)
 
                     used_shows.add(show)
                     self.channel_first_runs.add(show)
 
-                    for ep in eps_sets:
+                    for ep in eps_sets:  # just append — no clock movement here
                         schedule.append((show, ep, block_name))
                         msg = f"[{block_name}] SPECIAL (brandy) Slot {slot_start}-{slot_end}: {show} {ep}\n"
                         print(msg.strip());
                         log.write(msg)
-                        slots_used += 1
-                        slot_start = str(datetime.timedelta(seconds=current))
-                        slot_end = str(datetime.timedelta(seconds=current + slot_len))
-                    continue
+
+                    # Advance ONCE after BOTH 15-min episodes fill the 30-min slot
+                    slots_used += 1
+                    current += slot_len
+                    slot_start = str(datetime.timedelta(seconds=current))
+                    slot_end = str(datetime.timedelta(seconds=current + slot_len))
+                    continue  # ← outer loop continue
 
                 # --- Special case: Bob the bulder ---
                 if show == 'Bob the Builder':
@@ -1066,7 +1087,12 @@ class CustomMediaPlayer(QWidget):
                         msg = f"[{block_name}] No episodes for {show}, skipping slot {slot_start}-{slot_end}\n"
                         print(msg.strip());
                         log.write(msg)
+                        missing_log.write(msg)
+                        no_episode_shows.add(show)
                         slots_used += 1
+                        current += slot_len  # ← add this
+                        slot_start = str(datetime.timedelta(seconds=current))
+                        slot_end = str(datetime.timedelta(seconds=current + slot_len))
                         continue
 
                     used_shows.add(show)
@@ -1080,9 +1106,10 @@ class CustomMediaPlayer(QWidget):
                         log.write(msg)
 
                     slots_used += 1
+                    current += slot_len  # ← add this
+                    slot_start = str(datetime.timedelta(seconds=current))
+                    slot_end = str(datetime.timedelta(seconds=current + slot_len))
                     continue
-
-                # --- Special case: Infomercial (fill entire block with random "Info" clips) ---
 
                 # --- Check if this is an hour-long show FIRST ---
                 is_hour_long = show in hour_shows
@@ -1151,25 +1178,34 @@ class CustomMediaPlayer(QWidget):
                             log.write(msg)
 
                         slots_used += 1
+                        current += slot_len  # ← add this
+                        slot_start = str(datetime.timedelta(seconds=current))
+                        slot_end = str(datetime.timedelta(seconds=current + slot_len))
                         continue
 
                 # --- Normal shows (30-min or 1-hour) ---
                 duration_label = "1h" if is_hour_long else "30m"
+                slot_start_sec = current  # snapshot time BEFORE advancing
+
                 for ep in eps:
-                    if isinstance(ep, list):  # 🔥 unwrap nested lists
+                    if isinstance(ep, list):
                         for sub_ep in ep:
-                            schedule.append((show, sub_ep, block_name))
+                            schedule.append((show, sub_ep, block_name, slot_start_sec))  # ← add slot_start_sec
                             msg = f"[{block_name}] {run_type} ({duration_label}) Slot {slot_start}-{slot_end}: {show} {sub_ep}\n"
                             print(msg.strip())
                             log.write(msg)
                     else:
-                        schedule.append((show, ep, block_name))
+                        schedule.append((show, ep, block_name, slot_start_sec))  # ← add slot_start_sec
                         msg = f"[{block_name}] {run_type} ({duration_label}) Slot {slot_start}-{slot_end}: {show} {ep}\n"
                         print(msg.strip())
                         log.write(msg)
 
-                # ✅ THIS IS THE KEY FIX: Use slots_needed instead of hardcoded 1
                 slots_used += slots_needed
+                current += slot_len * slots_needed  # ← THIS IS THE MISSING LINE — advances the clock
+
+                # update slot_start/slot_end strings for next loop iteration
+                slot_start = str(datetime.timedelta(seconds=current))
+                slot_end = str(datetime.timedelta(seconds=current + slot_len))
 
             # debug summary
             missing = set(shows) - used_shows
@@ -1390,7 +1426,7 @@ class CustomMediaPlayer(QWidget):
         self.channel_first_runs = set()  # ✅ reset at the start of this channel
         day = datetime.datetime.today().weekday()  # 0=Mon .. 6=Sun
 
-        if day in range(4):
+        if day in range(5):
             self.playlist.extend(self.build_grid_for_block("Toon Disney", 7, 9))
             self.playlist.extend(self.build_grid_for_block("Playhouse Disney", 9, 12))
             self.playlist.extend(self.build_grid_for_block("Disney", 12, 20))
@@ -2003,6 +2039,7 @@ class CustomMediaPlayer(QWidget):
             "--no-border",
             "--force-window=yes",
             "--no-shuffle",
+            "--input-ipc-server=/tmp/mpv-socket",  # ← ADD
             f"--start={int(start_offset)}",
             first,
             *rest
@@ -2016,6 +2053,7 @@ class CustomMediaPlayer(QWidget):
             "--fs",
             "--no-border",
             "--force-window=yes",
+            "--input-ipc-server=/tmp/mpv-socket",  # ← ADD
             f"--start={int(offset)}",
             video,
         ]
@@ -2099,9 +2137,9 @@ class CustomMediaPlayer(QWidget):
                 "--force-window=yes",
                 "--no-shuffle",
                 "--loop-playlist=inf",
+                "--input-ipc-server=/tmp/mpv-socket",  # ← ADD
                 *rest
             ]
-
             proc = subprocess.Popen(cmd)
 
             def watcher():
@@ -2424,27 +2462,39 @@ class CustomMediaPlayer(QWidget):
         self.current_channel_index = (self.current_channel_index - 1) % len(self.channel_list)
         self.switch_channel(self.channel_list[self.current_channel_index])
 
+    def send_mpv_key(self, key):
+        """Send a keypress to mpv via IPC — no window focus needed."""
+        try:
+            with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as s:
+                s.connect("/tmp/mpv-socket")
+                cmd = json.dumps({"command": ["keypress", key]}) + "\n"
+                s.sendall(cmd.encode())
+        except Exception as e:
+            print(f"[mpv IPC] Could not send key '{key}': {e}")
+
     def handle_key_event(self):
         for event in self.keyboard_device.read():
-            if event.type == ecodes.EV_KEY and event.value == 1:  # Key press event
+            if event.type == ecodes.EV_KEY and event.value == 1:  # key down
                 if event.code == ecodes.KEY_PAGEDOWN:
                     self.previous_channel()
                 elif event.code == ecodes.KEY_PAGEUP:
                     self.next_channel()
                 elif event.code == ecodes.KEY_C:
-                    subprocess.run([
-                        "xdotool",
-                        "search", "--name", "mpv",
-                        "windowactivate", "--sync",
-                        "key", "c"
-                    ])
+                    self.send_mpv_key("c")  # no focus stolen
                 elif event.code == ecodes.KEY_A:
-                    subprocess.run([
-                        "xdotool",
-                        "search", "--name", "mpv",
-                        "windowactivate", "--sync",
-                        "key", "a"
-                    ])
+                    self.send_mpv_key("A")  # capital A — no focus stolen
+                elif event.code == ecodes.KEY_J:
+                    self.send_mpv_key("j")  # subtitle cycle
+                elif event.code == ecodes.KEY_W:
+                    self.send_mpv_key("W")  # Pan in cycle
+                elif event.code == ecodes.KEY_Q:
+                    self.send_mpv_key("w")  # Pan out cycle
+                # Fn+D → # : replace 999 with the real code once you find it
+                elif event.code == ecodes.KEY_D:
+                    self.send_mpv_key("#")
+                else:
+                    # TEMP: print unknown keys so you can find the Fn+D code
+                    print(f"[evdev] unhandled key code: {event.code}  ({ecodes.KEY.get(event.code, '?')})")
 
     def get_random_episode(self, show, count=1, unwatched_only=False):
         """
@@ -2642,7 +2692,7 @@ class CustomMediaPlayer(QWidget):
                 split_playlist.append((show.strip(), episode_str, block.strip()))
 
         self.playlist = split_playlist
-        for index, (show, episode, block) in enumerate(self.playlist):
+        for index, (show, episode, block, *_) in enumerate(self.playlist):
             channel_block = block
             self.current_show, self.current_episode, self.current_block = show, episode, channel_block
 
@@ -2903,7 +2953,7 @@ class CustomMediaPlayer(QWidget):
                 media_files.setdefault((normalized_show, episode_base_name), []).append(row['File Path'])
 
         playlist_files = {}
-        for show, episode, block in schedule:  # Unpack block as well
+        for show, episode, block, *_ in schedule:  # Unpack block as well
             normalized_show = self.normalize_show_name(show)
             normalized_episode = self.normalize_episode_name(episode)
 
@@ -3022,6 +3072,7 @@ class CustomMediaPlayer(QWidget):
                 "--fs",
                 "--no-border",
                 "--geometry=100%x100%",
+                "--input-ipc-server=/tmp/mpv-socket",  # ← ADD
                 video_path
             ])
         except Exception as e:
