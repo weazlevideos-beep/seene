@@ -858,6 +858,9 @@ class CustomMediaPlayer(QWidget):
         if usable_slots < 0:
             usable_slots = 0
 
+        # advance start time past the slots already consumed by the previous movie's overflow
+        current += self.partial_spill * slot_len
+
         # spill is now consumed
         self.partial_spill = 0
         shows = self.get_shows_for_block(block_name)
@@ -3106,4 +3109,3 @@ if __name__ == "__main__":
     media_player.show()
     # media_player.secret_mpv()
     sys.exit(app.exec_())
-
